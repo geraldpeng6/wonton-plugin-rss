@@ -1,27 +1,437 @@
 <!doctype html>
 <html lang="zh">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>你好</title>
-  <style>
-    :root { color-scheme: light dark; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      font-family: system-ui, -apple-system, "PingFang SC", "Noto Sans CJK SC", sans-serif;
-      background: #fbf7f2;
-      color: #2b2118;
-    }
-    @media (prefers-color-scheme: dark) {
-      body { background: #1d1813; color: #f3ece4; }
-    }
-    h1 { font-size: clamp(2.5rem, 8vw, 5rem); font-weight: 600; margin: 0; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>动态</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--color-background-primary, Canvas);
+    color: var(--color-text-primary, CanvasText);
+    font: 16px/1.5 var(--font-sans, system-ui, -apple-system, "PingFang SC", "Noto Sans CJK SC", sans-serif);
+    -webkit-text-size-adjust: 100%;
+  }
+  #bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-height: 46px;
+    padding: calc(var(--wonton-inset-top, 0px) + 4px) 8px 4px;
+    background: var(--color-background-primary, Canvas);
+    border-bottom: 1px solid var(--color-border-primary, rgba(128, 128, 128, .25));
+  }
+  #bar .title {
+    flex: 1;
+    min-width: 0;
+    margin: 0 6px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  button {
+    border: 0;
+    background: none;
+    color: var(--wonton-accent-ink, var(--color-text-primary, CanvasText));
+    font: inherit;
+    padding: 8px 10px;
+    border-radius: var(--border-radius-md, 12px);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button:active { background: var(--color-background-secondary, Field); }
+  button.fill {
+    background: var(--wonton-accent-fill, var(--color-text-primary, CanvasText));
+    color: var(--wonton-accent-ink-on-fill, var(--color-background-primary, Canvas));
+  }
+  button.danger { color: var(--color-text-danger, #d0342c); }
+  button:disabled { opacity: .5; }
+  #bar a {
+    color: var(--wonton-accent-ink, var(--color-text-primary, CanvasText));
+    font: inherit;
+    padding: 8px 10px;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  main { padding: calc(var(--wonton-inset-top, 0px) + 54px) 16px calc(var(--wonton-inset-bottom, 0px) + 24px); }
+  .row {
+    display: block;
+    width: 100%;
+    text-align: left;
+    color: inherit;
+    padding: 13px 4px;
+    border: 0;
+    border-bottom: 1px solid var(--color-border-primary, rgba(128, 128, 128, .25));
+    border-radius: 0;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+  }
+  .row:active { background: var(--color-background-secondary, Field); }
+  .row .head { display: flex; align-items: baseline; gap: 8px; }
+  .row .head b { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .head time { color: var(--color-text-secondary, GrayText); font-size: 13px; white-space: nowrap; }
+  .row .meta { color: var(--color-text-secondary, GrayText); font-size: 13px; margin-top: 2px; }
+  .clamp2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .error-line { color: var(--color-text-danger, #d0342c); font-size: 13px; margin-top: 2px; }
+  form.add { display: flex; gap: 8px; padding: 10px 0 2px; }
+  input {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border-primary, rgba(128, 128, 128, .4));
+    border-radius: var(--border-radius-md, 12px);
+    background: var(--color-background-secondary, Field);
+    color: inherit;
+    font: inherit;
+  }
+  .empty { text-align: center; color: var(--color-text-secondary, GrayText); padding: 72px 24px 8px; }
+  .empty svg { display: block; margin: 0 auto 12px; opacity: .5; }
+  .fatal { text-align: center; padding: 96px 24px 0; color: var(--color-text-secondary, GrayText); }
+  .article h1 { font-size: 22px; line-height: 1.35; margin: 6px 0 4px; }
+  .article .meta { color: var(--color-text-secondary, GrayText); font-size: 13px; margin-bottom: 16px; }
+  .article img { max-width: 100%; height: auto; border-radius: var(--border-radius-md, 12px); }
+  .article a { color: var(--wonton-accent-ink, var(--color-text-primary, CanvasText)); }
+  .article pre {
+    overflow: auto;
+    background: var(--color-background-secondary, Field);
+    padding: 12px;
+    border-radius: var(--border-radius-md, 12px);
+    font-size: 14px;
+  }
+  .article blockquote {
+    margin: 8px 0;
+    padding: 2px 12px;
+    border-left: 3px solid var(--color-border-primary, rgba(128, 128, 128, .4));
+    color: var(--color-text-secondary, GrayText);
+  }
+  .article table { border-collapse: collapse; }
+  .article td, .article th { border: 1px solid var(--color-border-primary, rgba(128, 128, 128, .4)); padding: 4px 8px; }
+  #toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--wonton-inset-bottom, 0px) + 28px);
+    transform: translateX(-50%);
+    max-width: 86%;
+    padding: 10px 16px;
+    border-radius: var(--border-radius-full, 999px);
+    background: var(--color-background-secondary, Field);
+    color: var(--color-text-primary, CanvasText);
+    font-size: 14px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+    z-index: 20;
+  }
+  #toast.show { opacity: 1; }
+  [hidden] { display: none !important; }
+</style>
 </head>
 <body>
-  <h1>你好，<!--# echo var="http_remote_user" default="" --></h1>
+<header id="bar"></header>
+<main>
+  <section id="feeds"></section>
+  <section id="articles" hidden></section>
+  <section id="article" class="article" hidden></section>
+  <div id="toast" role="status"></div>
+</main>
+<script>
+"use strict";
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => (
+  { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+));
+
+// ---------- 桥：手写的 MCP Apps JSON-RPC 子集（ui/message） ----------
+// 宿主把页面发出的 JSON-RPC 转给原生，回复以合成的 message 事件派发回来（origin 是空串）。
+let rpcSeq = 0;
+const rpcPending = new Map();
+window.addEventListener("message", (event) => {
+  if (event.source !== window || event.origin !== "") return;
+  const msg = event.data;
+  if (!msg || msg.jsonrpc !== "2.0" || typeof msg.id !== "number") return;
+  const settle = rpcPending.get(msg.id);
+  if (settle) { rpcPending.delete(msg.id); settle(msg); }
+});
+function callBridge(method, params, timeoutMs = 5000) {
+  return new Promise((resolve) => {
+    const id = ++rpcSeq;
+    rpcPending.set(id, resolve);
+    window.postMessage({ jsonrpc: "2.0", id, method, params }, location.origin);
+    setTimeout(() => {
+      if (rpcPending.delete(id)) resolve({ error: { code: -32000, message: "页面桥没有响应" } });
+    }, timeoutMs);
+  });
+}
+
+let toastTimer = 0;
+function toast(text) {
+  const el = $("toast");
+  el.textContent = text;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 3200);
+}
+
+// ---------- 数据 ----------
+let state = { feeds: [] };
+let currentFeedId = null;
+let currentArticle = null;
+let bootFailed = false;
+
+async function api(path, init) {
+  let res;
+  try {
+    res = await fetch(path, init);
+  } catch {
+    throw new Error("连不上服务");
+  }
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `服务器返回 ${res.status}`);
+  return body;
+}
+
+function feedById(id) { return state.feeds.find((f) => f.id === id); }
+function feedName(f) {
+  if (f.title) return f.title;
+  try { return new URL(f.url).hostname; } catch { return f.url; }
+}
+function fmtDate(ts) {
+  if (!ts) return "";
+  const d = new Date(ts * 1000);
+  const now = new Date();
+  const year = d.getFullYear() === now.getFullYear() ? "" : `${d.getFullYear()}年`;
+  return `${year}${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
+// ---------- 顶栏 ----------
+function bar(html) { $("bar").innerHTML = html; }
+function on(id, fn) { $(id).addEventListener("click", fn); }
+
+function showView(name) {
+  for (const id of ["feeds", "articles", "article"]) $(id).hidden = id !== name;
+}
+
+function renderBarFeeds() {
+  bar(`<button id="b-refresh">刷新</button><div class="title"></div><button id="b-add">添加</button>`);
+  on("b-refresh", refreshAll);
+  on("b-add", () => {
+    const form = $("add-form");
+    form.hidden = !form.hidden;
+    if (!form.hidden) form.querySelector("input").focus();
+  });
+}
+
+function renderBarFeed(feed) {
+  bar(`
+    <button id="b-back">‹ 订阅</button>
+    <div class="title">${esc(feedName(feed))}</div>
+    <button id="b-feed-refresh">刷新</button>
+    <button id="b-feed-delete" class="danger">删除</button>`);
+  on("b-back", openFeeds);
+  on("b-feed-refresh", () => refreshFeed(feed.id));
+  armDelete(feed);
+}
+
+function armDelete(feed) {
+  const btn = $("b-feed-delete");
+  btn.onclick = () => {
+    btn.textContent = "确认删除";
+    btn.onclick = async () => {
+      btn.disabled = true;
+      try {
+        state = await api(`/api/feeds/${feed.id}`, { method: "DELETE" });
+        toast("已删除订阅");
+        openFeeds();
+      } catch (e) { toast(e.message); btn.disabled = false; }
+    };
+    setTimeout(() => {
+      if (btn.isConnected && btn.textContent === "确认删除") { btn.textContent = "删除"; renderBarFeed(feed); }
+    }, 4000);
+  };
+}
+
+function renderBarArticle(feed) {
+  const link = currentArticle && currentArticle.link;
+  bar(`
+    <button id="b-back2">‹ 返回</button>
+    <div class="title"></div>
+    <button id="b-discuss">讨论</button>
+    ${link ? `<a id="b-open" href="${esc(link)}" target="_blank" rel="noopener noreferrer">原文</a>` : ""}`);
+  on("b-back2", () => { showView("articles"); renderBarFeed(feed); });
+  on("b-discuss", async () => {
+    const a = currentArticle;
+    if (!a) return;
+    const text = a.link ? `看看这篇：《${a.title}》 ${a.link}` : `看看这篇：《${a.title}》`;
+    // 核心的桥（rpc.rs draft_text）只收数组形式的 content；MCP Apps 规范写的是单个对象，
+    // 这里按核心的来，偏差记录在 PR 的“底座的问题”。
+    const res = await callBridge("ui/message", { role: "user", content: [{ type: "text", text }] });
+    if (res.error) toast(`发不了讨论：${res.error.message}`);
+    else toast("已放进聊天输入框，点发送才会发");
+  });
+}
+
+// ---------- 视图 ----------
+function renderFeeds() {
+  renderBarFeeds();
+  showView("feeds");
+  const el = $("feeds");
+  const rows = state.feeds.map((f) => `
+    <button class="row" data-feed="${esc(f.id)}">
+      <span class="head"><b>${esc(feedName(f))}</b><time>${f.articles.length ? fmtDate(f.articles[0].published) : ""}</time></span>
+      <span class="meta">${f.articles.length ? `${f.articles.length} 篇文章` : (f.error ? "还没抓到文章" : "还没有文章")}</span>
+      ${f.error ? `<span class="error-line">${esc(f.error)}</span>` : ""}
+    </button>`).join("");
+  el.innerHTML = `
+    <form class="add" id="add-form" ${state.feeds.length ? "hidden" : ""}>
+      <input name="url" type="url" inputmode="url" placeholder="https://…/feed" autocomplete="off" required>
+      <button class="fill">订阅</button>
+    </form>
+    <p class="error-line" id="add-error" hidden></p>
+    ${state.feeds.length ? rows : `
+      <div class="empty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1" fill="currentColor"/>
+        </svg>
+        还没有订阅<br>粘贴一个 RSS 地址，点订阅
+      </div>`}`;
+  const form = $("add-form");
+  form.onsubmit = addFeed;
+  el.querySelectorAll("[data-feed]").forEach((row) => {
+    row.addEventListener("click", () => openFeed(row.dataset.feed));
+  });
+}
+
+async function addFeed(event) {
+  event.preventDefault();
+  const input = $("add-form").querySelector("input");
+  const errorEl = $("add-error");
+  errorEl.hidden = true;
+  const button = $("add-form").querySelector("button");
+  button.disabled = true;
+  try {
+    state = await api("/api/feeds", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: input.value.trim() }),
+    });
+    input.value = "";
+    renderFeeds();
+  } catch (e) {
+    errorEl.textContent = e.message;
+    errorEl.hidden = false;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function renderArticles(feed) {
+  showView("articles");
+  renderBarFeed(feed);
+  const el = $("articles");
+  const rows = feed.articles.map((a) => `
+    <button class="row" data-article="${esc(a.id)}">
+      <span class="head"><b>${esc(a.title)}</b><time>${fmtDate(a.published)}</time></span>
+      ${a.summary ? `<span class="meta clamp2">${esc(a.summary)}</span>` : ""}
+    </button>`).join("");
+  el.innerHTML = `
+    ${feed.error ? `<p class="error-line">抓取失败：${esc(feed.error)}</p>` : ""}
+    ${feed.articles.length ? rows : `<div class="empty">${feed.error ? "上一次抓到的文章会显示在这里" : "这个订阅还没有文章"}</div>`}`;
+  el.querySelectorAll("[data-article]").forEach((row) => {
+    row.addEventListener("click", () => openArticle(feed, feed.articles.find((a) => a.id === row.dataset.article)));
+  });
+}
+
+function renderArticle(feed, a) {
+  showView("article");
+  renderBarArticle(feed);
+  $("article").innerHTML = `
+    <h1>${esc(a.title)}</h1>
+    <div class="meta">${esc(feedName(feed))}${a.published ? " · " + fmtDate(a.published) : ""}</div>
+    ${a.content || "<p>这篇文章没有正文，点“原文”去看。</p>"}`;
+}
+
+function openFeeds() {
+  currentFeedId = null;
+  currentArticle = null;
+  renderFeeds();
+}
+
+function openFeed(id) {
+  currentFeedId = id;
+  renderArticles(feedById(id));
+}
+
+function openArticle(feed, a) {
+  currentArticle = a;
+  renderArticle(feed, a);
+}
+
+// ---------- 动作 ----------
+async function refreshAll() {
+  const btn = $("b-refresh");
+  btn.disabled = true;
+  btn.textContent = "刷新中";
+  try {
+    state = await api("/api/refresh", { method: "POST" });
+    if (currentFeedId === null) renderFeeds();
+    else if (feedById(currentFeedId)) renderArticles(feedById(currentFeedId));
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "刷新";
+  }
+}
+
+async function refreshFeed(id) {
+  const btn = $("b-feed-refresh");
+  btn.disabled = true;
+  btn.textContent = "刷新中";
+  try {
+    state = await api(`/api/feeds/${id}/refresh`, { method: "POST" });
+    if (currentFeedId === id && feedById(id)) renderArticles(feedById(id));
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "刷新";
+  }
+}
+
+async function boot() {
+  $("feeds").innerHTML = `<div class="empty">加载中…</div>`;
+  try {
+    state = await api("/api/feeds");
+    bootFailed = false;
+    openFeeds();
+  } catch (e) {
+    bootFailed = true;
+    $("feeds").innerHTML = `
+      <div class="fatal">页面打不开：${esc(e.message)}<br><br><button class="fill" onclick="boot()">重试</button></div>`;
+  }
+}
+
+// App 再点一次当前标签：回到最上面。
+window.addEventListener("wonton:tab-reselected", () => window.scrollTo(0, 0));
+// 断网时打开失败过的页面，连上后重试；已加载的页面不自己刷新。
+window.addEventListener("wonton:connection", (event) => {
+  if (event && event.detail && event.detail.connected && bootFailed) boot();
+});
+
+boot();
+</script>
 </body>
 </html>

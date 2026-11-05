@@ -1,61 +1,79 @@
-# 示例插件：nginx 显示一个网页，向登录的人问好。照着 README 的“写插件”换成你的应用。
+# 官方 RSS 插件：python 标准库后端，页面和代码经 configs 交进容器，数据在 /data。
 services:
-  web:
-    # 镜像按摘要固定（多架构镜像写清单列表的摘要），标签只给人看。
-    image: nginx:1.30.6-alpine@sha256:0e52bd054126cdc040b1276c0af347aeb02a41b9cfe305d6094767ac30e97949
-    # 包里的文件经 configs 交给容器（核心在启动前写进去），不能用卷挂载。
+  app:
+    # 上游官方镜像，按清单列表摘要固定（多架构写 index 的摘要），标签只给人看。
+    image: python:3.13-alpine@sha256:7984cf56ceaddebe4fefeb75d64000b9f45d8b77b11a09b24524da6cdc3af0c8
+    # 不加 init 时 python 是 1 号进程，不响应 SIGTERM，每次更新都多等 10 秒。
+    init: true
+    command: ["python3", "/app/server.py"]
+    # 数据目录里的文件归主人的用户；configs 按插值后的 uid:gid 取属主，默认 0444 所有人可读。
+    user: "${PUID}:${PGID}"
+    volumes:
+      - ${WONTON_APP_DATA}:/data
     configs:
-      - source: site
-        target: /etc/nginx/conf.d/default.conf
+      - source: server
+        target: /app/server.py
       - source: page
-        target: /usr/share/nginx/html/index.html
+        target: /app/index.html
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz"]
+      # python3 -c 的写法核心不改写成不走代理，用空 ProxyHandler 直连本机。
+      test: ["CMD", "python3", "-c", "import urllib.request as r; r.build_opener(r.ProxyHandler({})).open('http://127.0.0.1:8080/healthz', timeout=3)"]
       interval: 30s
       timeout: 5s
-      start_period: 30s
+      start_period: 10s
       start_interval: 1s
 
 configs:
-  site:
-    file: web/default.conf
+  server:
+    file: server.py
   page:
     file: web/index.html
 
 x-wonton:
-  spec: "0.4"
-  # 换成你自己的：反向域名形式，装上以后不能改。
-  id: app.example.hello
+  spec: "0.5"
+  id: app.wonton.rss
   version: 0.1.1
   kind: app
-  title: { zh: 你好, en: Hello }
-  description: { zh: 向登录的人问好的示例网页, en: An example page that greets whoever is signed in }
+  title: { zh: RSS 订阅, en: RSS }
+  description: { zh: 在底栏看你订阅的 RSS, en: Read your RSS feeds from the bottom bar }
   icon: icon.svg
   notices: [NOTICE]
-  screenshots: [screenshots/home.png]
-  author: { name: Example }
-  homepage: https://nginx.org
-  # 应用（这里是 nginx）的许可证；插件包自己的许可证写在仓库的 LICENSE 里。
-  license: BSD-2-Clause
+  screenshots: [screenshots/home.png, screenshots/article.png]
+  author: { name: Wonton }
+  # 应用就是本仓库的后端和页面，许可证即 LICENSE 里的 MIT。
+  license: MIT
   tags:
-    zh: [工具]
-    en: [Tools]
+    zh: [资讯, 工具]
+    en: [News, Tools]
   about:
     zh: |
-      一个示例网页：登录以后，页面会向你问好。新建插件时可以照着改。
+      在 App 底栏的"动态"页里看自己订阅的 RSS。
+
+      添加订阅链接就能抓文章，点开读正文；单个订阅可以刷新或删除，
+      全部订阅一键刷新。抓不到的订阅如实标出原因，不假装正常。
+      页面只在登录后能打开，数据都存在自己家里。
     en: |
-      An example page: once you are signed in, the page says hello. Copy it as a starting point for a new plugin.
-  release_notes: { zh: 名字和说明更新。, en: Product name and description update. }
+      Read the RSS feeds you subscribe to on the "Feed" page in the app's bottom bar.
+
+      Add a feed link to fetch articles, tap one to read it; refresh or delete
+      each feed, or refresh all at once. Feeds that cannot be fetched say why
+      instead of pretending. Only signed-in users can open the page, and the
+      data stays on your own server.
+  release_notes: { zh: 首个版本。, en: First release. }
   webui:
-    service: web
-    port: 80
-    # 应用不认 OIDC 时，由网关在请求上加上用户名（README 的“网页入口和登录”）。
-    sso: proxy
-    proxy:
-      headers:
-        Remote-User: "{user}"
-  permissions: []
-  # 上游 nginx 官方镜像，amd64 和 arm64 都有；上游没写最低内存，按本机空闲实测取整（实测约 24M，取 64M）。
+    service: app
+    port: 8080
+    # sso: none（默认）：本插件没有账号体系，页面全靠核心网关的会话把守。
+  tabs:
+    - id: feed
+      title: { zh: 动态, en: Feed }
+      icon: tabs/feed.svg
+      icon_selected: tabs/feed-fill.svg
+      path: /
+      layout: edge-to-edge
+  # 抓订阅源要出网（也意味着能访问局域网，安装确认会写明）。
+  permissions: [network.egress]
+  # 上游 python:alpine 没写最低内存，按本机空闲实测取整（实测约 30M，取 64M）。
   requirements:
     arch: [amd64, arm64]
     memory: 64M
