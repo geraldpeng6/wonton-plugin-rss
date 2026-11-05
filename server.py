@@ -234,9 +234,8 @@ def _link(el):
     for c in _kids(el, "link"):
         href = c.get("href", "").strip()
         if not href:
-            text = _text(c)
-            href = text
-        if href[:9].lower() == "https://" or href[:8].lower() == "http://":
+            href = _text(c)
+        if href.lower().startswith(("https://", "http://")):
             return href
     return ""
 
