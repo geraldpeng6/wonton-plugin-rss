@@ -1,0 +1,61 @@
+# 示例插件：nginx 显示一个网页，向登录的人问好。照着 README 的“写插件”换成你的应用。
+services:
+  web:
+    # 镜像按摘要固定（多架构镜像写清单列表的摘要），标签只给人看。
+    image: nginx:1.30.6-alpine@sha256:0e52bd054126cdc040b1276c0af347aeb02a41b9cfe305d6094767ac30e97949
+    # 包里的文件经 configs 交给容器（核心在启动前写进去），不能用卷挂载。
+    configs:
+      - source: site
+        target: /etc/nginx/conf.d/default.conf
+      - source: page
+        target: /usr/share/nginx/html/index.html
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      start_interval: 1s
+
+configs:
+  site:
+    file: web/default.conf
+  page:
+    file: web/index.html
+
+x-wonton:
+  spec: "0.4"
+  # 换成你自己的：反向域名形式，装上以后不能改。
+  id: app.example.hello
+  version: 0.1.1
+  kind: app
+  title: { zh: 你好, en: Hello }
+  description: { zh: 向登录的人问好的示例网页, en: An example page that greets whoever is signed in }
+  icon: icon.svg
+  notices: [NOTICE]
+  screenshots: [screenshots/home.png]
+  author: { name: Example }
+  homepage: https://nginx.org
+  # 应用（这里是 nginx）的许可证；插件包自己的许可证写在仓库的 LICENSE 里。
+  license: BSD-2-Clause
+  tags:
+    zh: [工具]
+    en: [Tools]
+  about:
+    zh: |
+      一个示例网页：登录以后，页面会向你问好。新建插件时可以照着改。
+    en: |
+      An example page: once you are signed in, the page says hello. Copy it as a starting point for a new plugin.
+  release_notes: { zh: 名字和说明更新。, en: Product name and description update. }
+  webui:
+    service: web
+    port: 80
+    # 应用不认 OIDC 时，由网关在请求上加上用户名（README 的“网页入口和登录”）。
+    sso: proxy
+    proxy:
+      headers:
+        Remote-User: "{user}"
+  permissions: []
+  # 上游 nginx 官方镜像，amd64 和 arm64 都有；上游没写最低内存，按本机空闲实测取整（实测约 24M，取 64M）。
+  requirements:
+    arch: [amd64, arm64]
+    memory: 64M
