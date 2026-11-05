@@ -211,7 +211,7 @@ services:
 | `notify` | 给用户发通知 |
 | `network.egress` | 访问外网和局域网 |
 | `network.lan` | 在局域网上开放 `lan.ports` 列出的端口，高权限 |
-| `network.host` | 不开放（ADR-0019），局域网访问用 `network.lan`，高权限 |
+| `network.host` | 不开放，局域网访问用 `network.lan`，高权限 |
 | `devices.gpu` | 使用显卡，高权限 |
 | `devices.<路径>` | 访问宿主设备，如 USB，高权限 |
 | `docker.socket` | 访问 Docker socket，最高权限，默认拒绝，需要单独确认 |

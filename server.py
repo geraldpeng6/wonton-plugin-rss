@@ -37,7 +37,6 @@ MAX_CONTENT_CHARS = 60000
 MAX_BODY = 4 * 1024
 REFRESH_WORKERS = 4
 
-FETCH_LOCK = threading.Lock()
 STATE_LOCK = threading.Lock()
 
 
@@ -231,14 +230,14 @@ def _text(el):
 
 
 def _link(el):
-    """RSS 的 link 是文字；Atom 的是 href 属性。"""
+    """RSS 的 link 是文字；Atom 的是 href 属性。页面要把链接直接当 href 用，只留 http(s)，别的当没有。"""
     for c in _kids(el, "link"):
         href = c.get("href", "").strip()
-        if href:
+        if not href:
+            text = _text(c)
+            href = text
+        if href[:9].lower() == "https://" or href[:8].lower() == "http://":
             return href
-        text = _text(c)
-        if text:
-            return text
     return ""
 
 
@@ -354,8 +353,9 @@ def fetch_feed(url):
 
 
 def merge_articles(old, fresh):
+    """新抓的在前：同一篇被源里更新过时，用新内容，不留在手上的旧文。"""
     by_id = {}
-    for a in old + fresh:
+    for a in fresh + old:
         if a["id"] not in by_id:
             by_id[a["id"]] = a
     articles = list(by_id.values())
