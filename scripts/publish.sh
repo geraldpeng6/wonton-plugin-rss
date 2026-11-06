@@ -26,6 +26,27 @@ cd "$root"
 version="$(plugin_version)"
 tag="v$version"
 ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null || die "已经有 tag $tag：先把清单的 version 改成新版本"
+
+# 清单的 release_notes，规格化成一行 JSON（键序无关），比较用。compose config 要求引用的文件都在：
+# 发版时工作区是干净的；上一个 tag 的用 git archive 整包解出再解析。
+release_notes() {
+  docker compose -f "$1" config --no-interpolate --format json 2>/dev/null |
+    jq -cS '."x-wonton".release_notes // empty'
+}
+
+# Dependabot 的升级 PR 只改镜像，version 和 release_notes 攒到发版时一起改：少改一样就停下提示，不自动编。
+last_tag="$(git tag -l 'v*' --sort=-v:refname | head -1)"
+if [[ -n "$last_tag" ]]; then
+  [[ "$(printf '%s\n%s\n' "$tag" "$last_tag" | sort -V | tail -1)" == "$tag" ]] ||
+    die "version $version 不比上一个 tag $last_tag 新：发版前把清单的 version 改成新版本"
+  notes="$(release_notes "$root/docker-compose.yml")"
+  tmp="$(mktemp -d "${TMPDIR:-/tmp}/wonton-lasttag.XXXXXX")"
+  git archive "$last_tag" | tar -C "$tmp" -xf -
+  [[ "$notes" != "$(release_notes "$tmp/docker-compose.yml")" ]] ||
+    die "release_notes 和 $last_tag 的相同：发版前把这个版本改了什么写进清单的 release_notes"
+  rm -rf "$tmp"
+fi
+
 info "检查插件包"
 in_core "$root" plugin check /plugin >/dev/null || die "插件包不合格，scripts/check.sh 看原因"
 
