@@ -20,6 +20,7 @@
 #   scripts/dev.sh mcp --direct list|call …   直连工作区清单的 MCP 服务，只调试插件本身，不走总线权限和确认
 #   scripts/dev.sh approve [--watch]          用主人令牌批准确认卡片；--watch 持续批准，Ctrl-C 停止
 #   scripts/dev.sh smoke                      对工作区的插件跑合并前的端到端冒烟：起一套一次性实例，跑完清理
+#   scripts/dev.sh probes [<探针名>…]          对装着的工作区插件跑冒烟探针（web_assert、identity_check、mcp），不起新实例；给了名字就只跑那几项
 #   scripts/dev.sh pair                       在终端里出配对二维码，给 App 用
 #   scripts/dev.sh down                       停下核心，数据都留着；插件的容器由核心管，照常运行
 #   scripts/dev.sh reset                      删掉当前实例的插件容器和网络，保留核心和 .wonton 数据
@@ -28,8 +29,11 @@
 #
 # 第一次 up 时可以用环境变量定下：WONTON_CORE_IMAGE（核心镜像，默认 ghcr.io/geraldpeng6/wonton-core:beta）、
 # WONTON_INSTANCE（实例名）、WONTON_PORT（网页端口，隧道用下一个端口）、WONTON_PULL=never（用本机构建的核心镜像，
-# 不拉取）。之后改 .wonton/.env 再 up。
+# 不拉取）。之后改 .wonton/.env 再 up。WONTON_DEV_CORE_SUBNET（如 10.214.1.0/24）让核心网络用这个子网，不占 Docker 的
+# 默认地址池（只有约 30 个网络，几套栈共用一台 Docker 时会用光）；写进 .wonton/compose.subnet.yaml，栈拆掉之前一直沿用。
 set -euo pipefail
+# forget_environment 会清掉所有 WONTON_*，先留一份。
+core_subnet="${WONTON_DEV_CORE_SUBNET:-}"
 # shellcheck source=scripts/lib.sh
 . "$(dirname "$0")/lib.sh"
 # kit-update 只要 lib.sh：套件缺文件、或者从没有套件的旧仓库只复制了 dev.sh 和 lib.sh 时，它也要能跑。
@@ -148,7 +152,11 @@ check_core_image() {
 }
 
 compose() {
-  docker compose -p "wonton-$instance" -f "$state/compose.yaml" "$@"
+  local files=(-f "$state/compose.yaml")
+  [[ -z "$core_subnet" ]] ||
+    printf 'networks:\n  core:\n    ipam:\n      config:\n        - subnet: %s\n' "$core_subnet" >"$state/compose.subnet.yaml"
+  [[ ! -f "$state/compose.subnet.yaml" ]] || files+=(-f "$state/compose.subnet.yaml")
+  docker compose -p "wonton-$instance" "${files[@]}" "$@"
 }
 
 up() {
@@ -772,6 +780,12 @@ case "${1:-}" in
   mcp) mcp "${@:2}" ;;
   approve) approve "${@:2}" ;;
   smoke) "$root/scripts/smoke.sh" "${@:2}" ;;
+  probes)
+    # 探针套件在这里才 source：里面有的名字（如 mcp）会盖过本文件的函数，probes 自己的路不受影响。
+    # shellcheck source=scripts/probes.sh
+    . "$root/scripts/probes.sh"
+    probes_cmd "${@:2}"
+    ;;
   pair) pair ;;
   down)
     need_env
