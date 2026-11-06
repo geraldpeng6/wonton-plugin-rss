@@ -84,16 +84,21 @@ finish() {
 }
 trap finish EXIT
 
-# 全机最多 2 套插件验证栈，其余排队（只数别人的，自己还没起）。
-foreign="$(docker ps --filter 'label=wonton.instance' --format '{{.Label "wonton.instance"}}' | sort -u | wc -l)"
-waited=0
-while ((foreign >= 2)); do
-  ((waited == 0)) && say "已有 $foreign 套验证栈在跑，排队等待"
-  ((waited >= 45)) && die "等了 45 分钟还是 $foreign 套验证栈，排队放弃"
-  sleep 60
-  waited=$((waited + 1))
-  foreign="$(docker ps --filter 'label=wonton.instance' --format '{{.Label "wonton.instance"}}' | sort -u | wc -l)"
-done
+# 共用一台 Docker 时可以限制同时跑的验证栈：WONTON_SMOKE_MAX_STACKS=<套数>（只数别人的，自己还没起），
+# WONTON_SMOKE_WAIT_MINUTES 是最多等多久（默认 45）。不设就不排队：自己的开发环境也算一套，默认限制会挡住只有一个人的主机。
+if [[ -n "${WONTON_SMOKE_MAX_STACKS:-}" ]]; then
+  [[ "$WONTON_SMOKE_MAX_STACKS" =~ ^[1-9][0-9]*$ ]] || die "WONTON_SMOKE_MAX_STACKS 要是正整数：$WONTON_SMOKE_MAX_STACKS"
+  wait_minutes="${WONTON_SMOKE_WAIT_MINUTES:-45}"
+  [[ "$wait_minutes" =~ ^[0-9]+$ ]] || die "WONTON_SMOKE_WAIT_MINUTES 要是整数：$wait_minutes"
+  waited=0
+  while foreign="$(docker ps --filter 'label=wonton.instance' --format '{{.Label "wonton.instance"}}' | sort -u | wc -l)"
+    ((foreign >= WONTON_SMOKE_MAX_STACKS)); do
+    ((waited == 0)) && say "已有 $foreign 套验证栈在跑（上限 $WONTON_SMOKE_MAX_STACKS），排队等待"
+    ((waited >= wait_minutes)) && die "等了 $wait_minutes 分钟还是 $foreign 套验证栈，排队放弃（没有跑任何插件检查）"
+    sleep 60
+    waited=$((waited + 1))
+  done
+fi
 
 say "复制工作区（不动 .wonton）"
 mkdir "$copy"
@@ -177,7 +182,6 @@ core="wonton-$instance--core"
 SMOKE_OWNER="$(docker exec "$core" cat "$(read_env WONTON_DATA_DIR)/core/owner.json" 2>/dev/null | jq -r '.username // empty')"
 SMOKE_OWNER="${SMOKE_OWNER:-owner}"
 SMOKE_OWNER_EMAIL="$(read_env WONTON_OWNER_EMAIL)"
-SMOKE_BASE="$SMOKE_BASE" SMOKE_TOKEN="$SMOKE_TOKEN" SMOKE_OWNER="$SMOKE_OWNER" SMOKE_OWNER_EMAIL="$SMOKE_OWNER_EMAIL"
 SMOKE_PLUGIN_ID="$plugin_id" SMOKE_SLUG="$slug" SMOKE_SSO="$sso" SMOKE_MCP="$has_mcp"
 export SMOKE_DIR SMOKE_INSTANCE SMOKE_JAR SMOKE_TOOLS SMOKE_BASE SMOKE_TOKEN SMOKE_OWNER SMOKE_OWNER_EMAIL
 export SMOKE_PLUGIN_ID SMOKE_SLUG SMOKE_SSO SMOKE_MCP
@@ -297,7 +301,7 @@ else
       fail 工具Bot调得到 "mcp_check 失败，见 $LOG 末尾：$(tail -c 200 "$LOG" | tr '\n' ' ')"
     fi
   elif [[ "$n_mine" -lt 1 ]]; then
-    fail 工具Bot调得到 "tools/list 没有 $slug__ 前缀工具"
+    fail 工具Bot调得到 "tools/list 没有 ${slug}__ 前缀工具"
   elif [[ -z "$MCP_TOOL" ]]; then
     pass 工具Bot调得到 "tools/list 有本插件工具（探测没指定只读工具）"
   else

@@ -1,0 +1,13 @@
+name: 检查
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    uses: geraldpeng6/wonton-plugin-template/.github/workflows/plugin-check.yml@e7f25ca593828f399066d5af67b334151ad0d54b

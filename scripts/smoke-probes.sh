@@ -1,4 +1,5 @@
 # scripts/smoke.sh 的一项一项探测，跟着插件走。没写的项会 FAIL 并给出写法，不会默认放行。
+# shellcheck shell=bash disable=SC2034
 #
 # 页面：web_assert 从标准输入读页面，命中的确是应用的真实页面时返回 0。
 # 身份：本插件没有账号体系（sso: none），页面只有核心网关的会话能打开，没有应用自己的“当前用户”接口可断言，
