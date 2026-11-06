@@ -1,4 +1,4 @@
-"""MCP 客户端（官方 SDK），在 Hermes gateway 容器里跑：python3 - list|call <URL> …，脚本从标准输入读入。
+"""MCP 客户端（官方 SDK），在 Hermes gateway 或同镜像的一次性容器里跑：脚本从标准输入读入。
 
   list <URL>                initialize + tools/list（翻页），标准输出工具数组的 JSON
   call <URL> <工具> <JSON>  initialize + tools/call，标准输出 result 的 JSON

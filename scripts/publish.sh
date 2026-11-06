@@ -8,7 +8,8 @@
 #   3. 再检查一遍（--official 时按官方索引的要求）。
 #   4. 打 tag v<版本>，推送当前分支和 tag（远端 origin）。
 #
-# 不用 GitHub 托管的 runner：私有仓库的免费额度很少，几个插件一起开发时很快用完。
+# 仓库公开时在 GitHub Actions 里执行（.github/workflows/publish.yml），不用本机登录镜像仓库；私有仓库的免费额度很少，
+# 几个插件一起开发时很快用完，在本机执行。
 set -euo pipefail
 # shellcheck source=scripts/lib.sh
 . "$(dirname "$0")/lib.sh"
@@ -61,6 +62,18 @@ print(repos.pop())
 PY
 }
 
+# origin 的网页地址，如 https://github.com/me/wonton-plugin-hello。
+source_url() {
+  local url host
+  url="$(git remote get-url origin)"
+  url="${url%.git}"
+  if [[ "$url" == git@*:* ]]; then
+    host="${url#git@}"
+    url="https://${host%%:*}/${url#*:}"
+  fi
+  echo "$url"
+}
+
 built=""
 for dockerfile in images/*/Dockerfile; do
   [[ -e "$dockerfile" ]] || continue
@@ -68,7 +81,11 @@ for dockerfile in images/*/Dockerfile; do
   repo="$(image_repo "$name")" || exit 1
   info "构建并推送 $repo:$version（linux/amd64、linux/arm64）"
   meta="$(mktemp)"
+  # 带上源码仓库，ghcr.io 据此把镜像关联到仓库；Actions 里用 GITHUB_TOKEN 推送要靠这个关联。
+  source="$(source_url)"
   docker buildx build --platform linux/amd64,linux/arm64 --push --metadata-file "$meta" \
+    --label "org.opencontainers.image.source=$source" \
+    --annotation "index:org.opencontainers.image.source=$source" \
     -t "$repo:$version" "images/$name" || die "构建或推送 $repo 失败"
   digest="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["containerimage.digest"])' "$meta")"
   rm -f "$meta"
