@@ -9,3 +9,4 @@ scripts/smoke.sh
 scripts/mcp_client.py
 scripts/kit.files
 .github/workflows/check.yml
+.github/dependabot.yml
