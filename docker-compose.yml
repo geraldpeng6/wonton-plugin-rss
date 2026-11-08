@@ -2,7 +2,7 @@
 services:
   app:
     # 上游官方镜像，按清单列表摘要固定（多架构写 index 的摘要），标签只给人看。
-    image: python:3.13-alpine@sha256:7984cf56ceaddebe4fefeb75d64000b9f45d8b77b11a09b24524da6cdc3af0c8
+    image: python:3.15-alpine3.23@sha256:8d77d813a53e534dec9e1e5182cbd5b651b70d63b27e4ea7c1f616b37cf9aad2
     # 不加 init 时 python 是 1 号进程，不响应 SIGTERM，每次更新都多等 10 秒。
     init: true
     command: ["python3", "/app/server.py"]
@@ -32,7 +32,7 @@ configs:
 x-wonton:
   spec: "0.5"
   id: app.wonton.rss
-  version: 0.1.1
+  version: 0.1.2
   kind: app
   title: { zh: RSS 订阅, en: RSS }
   description: { zh: 在底栏看你订阅的 RSS, en: Read your RSS feeds from the bottom bar }
@@ -59,7 +59,7 @@ x-wonton:
       each feed, or refresh all at once. Feeds that cannot be fetched say why
       instead of pretending. Only signed-in users can open the page, and the
       data stays on your own server.
-  release_notes: { zh: 首个版本。, en: First release. }
+  release_notes: { zh: 运行时镜像升到 Python 3.15。, en: "The runtime image moves to Python 3.15." }
   webui:
     service: app
     port: 8080
