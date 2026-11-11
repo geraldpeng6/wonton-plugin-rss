@@ -1,6 +1,6 @@
 # 云吞官方 RSS 插件
 
-开发流程见[插件开发指南](https://github.com/geraldpeng6/wonton-docs/blob/main/develop.md)。
+开发流程见[插件开发指南](https://github.com/wontonapp/wonton-docs/blob/main/develop.md)。
 
 在云吞（Wonton）App 的“动态”页里看自己订阅的 RSS：粘贴订阅链接就能抓文章，点开读正文；单个订阅可以刷新或删除，
 全部订阅一键刷新，抓不到的订阅如实标出原因。插件没有自己的账号，网页在核心网关的登录后面，只有你能打开。
