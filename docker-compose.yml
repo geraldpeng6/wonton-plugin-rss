@@ -35,7 +35,7 @@ x-wonton:
   version: 0.1.2
   kind: app
   title: { zh: RSS 订阅, en: RSS }
-  description: { zh: 在底栏看你订阅的 RSS, en: Read your RSS feeds from the bottom bar }
+  description: { zh: 看你订阅的 RSS, en: Read your RSS feeds }
   icon: icon.svg
   notices: [NOTICE]
   screenshots: [screenshots/home.png, screenshots/article.png]
@@ -47,13 +47,13 @@ x-wonton:
     en: [News, Tools]
   about:
     zh: |
-      在 App 底栏的"动态"页里看自己订阅的 RSS。
+      在 App 里看自己订阅的 RSS。
 
       添加订阅链接就能抓文章，点开读正文；单个订阅可以刷新或删除，
       全部订阅一键刷新。抓不到的订阅如实标出原因，不假装正常。
       页面只在登录后能打开，数据都存在自己家里。
     en: |
-      Read the RSS feeds you subscribe to on the "Feed" page in the app's bottom bar.
+      Read the RSS feeds you subscribe to on the "Feed" page in the app.
 
       Add a feed link to fetch articles, tap one to read it; refresh or delete
       each feed, or refresh all at once. Feeds that cannot be fetched say why
