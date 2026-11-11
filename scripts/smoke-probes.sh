@@ -19,7 +19,7 @@ marker_file() { # SMOKE_STATE 在套件里是状态目录（e2e 传的是标记�
 # 数据：订阅就是用户数据（POST /api/feeds 时抓成功才落盘）。用 GitHub 的公开 Atom 源做标记地址：
 # 冒烟就在 GitHub 的 CI 上跑，egress 链路对这个域的可用性有专门验证；data_write 存订阅、记下 id，
 # data_check 重装/升级后订阅还在。
-RSS_PROBE_FEED="https://github.com/geraldpeng6/wonton-docs/commits.atom"
+RSS_PROBE_FEED="https://github.com/wontonapp/wonton-docs/commits.atom"
 
 rss_get() { # <方法> [JSON 体]：带网关会话调应用接口
   local method="$1" body="${2:-}"
