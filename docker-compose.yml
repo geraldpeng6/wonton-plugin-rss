@@ -34,8 +34,8 @@ x-wonton:
   id: app.wonton.rss
   version: 0.1.2
   kind: app
-  title: { zh: RSS 订阅, en: RSS }
-  description: { zh: 看你订阅的 RSS, en: Read your RSS feeds }
+  title: { zh: 简易订阅, en: Simple Feeds }
+  description: { zh: 最简单的订阅：贴一个网站的订阅链接，文章就出现在 App 的“动态”页里，点开就能读，想看最新的点一下刷新。适合只想偶尔看看几个网站更新的人。, en: "The simplest way to follow websites: paste a site's feed link and its articles appear on the app's Feed page, ready to read; tap refresh for the latest. For checking in on a few sites now and then." }
   icon: icon.svg
   notices: [NOTICE]
   screenshots: [screenshots/home.png, screenshots/article.png]
@@ -47,13 +47,13 @@ x-wonton:
     en: [News, Tools]
   about:
     zh: |
-      在 App 里看自己订阅的 RSS。
+      在 App 的“动态”页看自己订阅的网站更新：贴上订阅链接就能抓来文章，点开读正文。
 
       添加订阅链接就能抓文章，点开读正文；单个订阅可以刷新或删除，
       全部订阅一键刷新。抓不到的订阅如实标出原因，不假装正常。
       页面只在登录后能打开，数据都存在自己家里。
     en: |
-      Read the RSS feeds you subscribe to on the "Feed" page in the app.
+      Read updates from the sites you follow on the app's Feed page: paste a feed link and its articles are fetched for you, ready to read.
 
       Add a feed link to fetch articles, tap one to read it; refresh or delete
       each feed, or refresh all at once. Feeds that cannot be fetched say why
