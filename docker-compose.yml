@@ -2,7 +2,7 @@
 services:
   app:
     # 上游官方镜像，按清单列表摘要固定（多架构写 index 的摘要），标签只给人看。
-    image: python:3.15-alpine3.23@sha256:8d77d813a53e534dec9e1e5182cbd5b651b70d63b27e4ea7c1f616b37cf9aad2
+    image: python:3.15-alpine3.23@sha256:32f06114a111c2467804d06194c5584f16804a78cfaf427fb1fcbb0b3391d0f1
     # 不加 init 时 python 是 1 号进程，不响应 SIGTERM，每次更新都多等 10 秒。
     init: true
     command: ["python3", "/app/server.py"]
